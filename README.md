@@ -31,3 +31,8 @@ cmake --build build
 Chaque dossier correspond à un thème ou à un épisode. Il contient ses sources,
 sa documentation et, lorsque cela est utile, les supports associés.
 
+## Licence
+
+Le code et les supports de ce dépôt sont distribués sous
+[licence MIT](LICENSE).
+
