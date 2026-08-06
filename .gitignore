@@ -34,4 +34,4 @@ Makefile
 *.swp
 *~
 .DS_Store
-
+*:Zone.Identifier

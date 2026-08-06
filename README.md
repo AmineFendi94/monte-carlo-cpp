@@ -1,5 +1,9 @@
 # Série Monte Carlo en C++
 
+<p align="center">
+  <img src="assets/cover.png" alt="Monte Carlo en C++ — pricing d'options" width="100%">
+</p>
+
 Ce dépôt accompagne une série de vidéos consacrée aux méthodes de Monte Carlo
 appliquées à la finance quantitative.
 
@@ -35,4 +39,3 @@ sa documentation et, lorsque cela est utile, les supports associés.
 
 Le code et les supports de ce dépôt sont distribués sous
 [licence MIT](LICENSE).
-
