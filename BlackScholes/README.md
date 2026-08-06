@@ -1,4 +1,4 @@
-# Épisode 1 — Monte Carlo et Black–Scholes
+# Épisode 1 à 5 — Monte Carlo sous Black–Scholes
 
 Ce dossier accompagne la première partie de la série consacrée au pricing
 Monte Carlo en C++.
