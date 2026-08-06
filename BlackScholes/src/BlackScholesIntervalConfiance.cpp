@@ -25,6 +25,7 @@ Result callBlackScholes(double S0, double K , double r , double T , double sigma
     std::mt19937 generator(rd());
     std::normal_distribution<double> normal(0.0,1.0);
 
+    double varDiscountPayoff = 0.0;
 
     for (std::size_t i = 1; i < Nsim+1; i++)
     {
@@ -34,10 +35,22 @@ Result callBlackScholes(double S0, double K , double r , double T , double sigma
 
         double discountPayoff = std::exp(-r*T)*std::max(ST-K,0.0);
 
-        resultat.price += discountPayoff;
+        double delta = discountPayoff - resultat.price;
+
+
+
+        resultat.price += delta/static_cast<double>(i);
+        varDiscountPayoff+= delta*(discountPayoff-resultat.price);
+
     }
 
-    resultat.price /= static_cast<double>(Nsim);
+    varDiscountPayoff /= static_cast<double>(Nsim-1);
+
+    double stdPrice = std::sqrt(varDiscountPayoff/static_cast<double>(Nsim));
+
+    resultat.CIHigh = resultat.price + 1.96*stdPrice;
+    resultat.CILow = resultat.price - 1.96*stdPrice;
+    resultat.length = resultat.CIHigh - resultat.CILow;
 
     return resultat;
     
@@ -58,18 +71,20 @@ int main()
         auto resulat = callBlackScholes(S0, K,r,T,sigma,Nsim);
 
 
-        std::cout << "Price = " << resulat.price << std::endl;
+        std::cout << "Prix = " << resulat.price << std::endl;
+        std::cout << "CI Low = " << resulat.CILow << std::endl;
+        std::cout << "CI High = " << resulat.CIHigh << std::endl;
+        std::cout << "length = " << resulat.length << std::endl;
         return 0;
     }
     catch(const std::exception& e)
     {
-        std::cerr << "Error : " << e.what() << '\n';
+        std::cerr << "Erreur : " << e.what() << '\n';
         return 1;
     }
     
 
 
 }
-
 
 
