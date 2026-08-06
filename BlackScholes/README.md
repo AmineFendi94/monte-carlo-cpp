@@ -10,11 +10,11 @@ progression suivante :
 
 | Épisode | Fichier associé | Contenu |
 |---:|---|---|
-| 1 | `BlackScholes.cpp` | Présentation de la méthode Monte Carlo et application au pricing d'un call sous Black--Scholes |
-| 2 | `BlackScholesIntervalConfiance.cpp` | Calcul de l'écart-type de l'estimateur avec l'algorithme de Welford et construction de l'intervalle de confiance |
-| 3 | `BlackScholesAntithetic.cpp` | Réduction de variance par variables antithétiques |
-| 4 | `BlackScholesVC.cpp` | Réduction de variance par variable de contrôle |
-| 5 | `BlackScholesOpenMP.cpp` | Combinaison des deux méthodes de réduction de variance et parallélisation avec OpenMP |
+| 1 | [`01_monte_carlo.cpp`](src/01_monte_carlo.cpp) | Présentation de la méthode Monte Carlo et application au pricing d'un call sous Black--Scholes |
+| 2 | [`02_intervalle_confiance_welford.cpp`](src/02_intervalle_confiance_welford.cpp) | Calcul de l'écart-type de l'estimateur avec l'algorithme de Welford et construction de l'intervalle de confiance |
+| 3 | [`03_variables_antithetiques.cpp`](src/03_variables_antithetiques.cpp) | Réduction de variance par variables antithétiques |
+| 4 | [`04_variable_controle.cpp`](src/04_variable_controle.cpp) | Réduction de variance par variable de contrôle |
+| 5 | [`05_antithetiques_controle_openmp.cpp`](src/05_antithetiques_controle_openmp.cpp) | Combinaison des deux méthodes de réduction de variance et parallélisation avec OpenMP |
 
 Les épisodes 1 et 2 disposent désormais de fichiers distincts : le second
 enrichit l'implémentation introduite dans le premier avec les statistiques
@@ -56,7 +56,7 @@ Les exécutables sont placés dans `build/BlackScholes/`.
 Pour choisir le nombre de threads de la version OpenMP :
 
 ```bash
-OMP_NUM_THREADS=4 ./build/BlackScholes/black_scholes_openmp
+OMP_NUM_THREADS=4 ./build/BlackScholes/05_antithetiques_controle_openmp
 ```
 
 ## Support de présentation

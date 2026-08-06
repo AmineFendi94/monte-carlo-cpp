@@ -1,18 +1,18 @@
-add_executable(black_scholes src/BlackScholes.cpp)
-add_executable(black_scholes_interval_confiance src/BlackScholesIntervalConfiance.cpp)
-add_executable(black_scholes_antithetic src/BlackScholesAntithetic.cpp)
-add_executable(black_scholes_control_variate src/BlackScholesVC.cpp)
-add_executable(black_scholes_openmp src/BlackScholesOpenMP.cpp)
+add_executable(01_monte_carlo src/01_monte_carlo.cpp)
+add_executable(02_intervalle_confiance_welford src/02_intervalle_confiance_welford.cpp)
+add_executable(03_variables_antithetiques src/03_variables_antithetiques.cpp)
+add_executable(04_variable_controle src/04_variable_controle.cpp)
+add_executable(05_antithetiques_controle_openmp src/05_antithetiques_controle_openmp.cpp)
 
 foreach(target
-        black_scholes
-        black_scholes_interval_confiance
-        black_scholes_antithetic
-        black_scholes_control_variate
-        black_scholes_openmp)
+        01_monte_carlo
+        02_intervalle_confiance_welford
+        03_variables_antithetiques
+        04_variable_controle
+        05_antithetiques_controle_openmp)
     target_compile_features(${target} PRIVATE cxx_std_17)
     target_compile_options(${target} PRIVATE -Wall -Wextra -Wpedantic)
 endforeach()
 
 find_package(OpenMP REQUIRED)
-target_link_libraries(black_scholes_openmp PRIVATE OpenMP::OpenMP_CXX)
+target_link_libraries(05_antithetiques_controle_openmp PRIVATE OpenMP::OpenMP_CXX)
