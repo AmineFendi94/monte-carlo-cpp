@@ -32,3 +32,9 @@ Pour choisir le nombre de threads de la version OpenMP :
 OMP_NUM_THREADS=4 ./build/BlackScholes/black_scholes_openmp
 ```
 
+## Support de présentation
+
+Le fichier LaTeX utilisé pour la série est disponible dans
+[`slides/MonteCarloPresentation.tex`](slides/MonteCarloPresentation.tex).
+Il présente le cadre mathématique, les méthodes de réduction de variance et
+la parallélisation OpenMP sans inclure de code dans les diapositives.

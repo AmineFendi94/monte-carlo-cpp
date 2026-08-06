@@ -1,0 +1,956 @@
+\documentclass[aspectratio=169,11pt]{beamer}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[french]{babel}
+\usepackage{amsmath,amssymb}
+\usepackage{lmodern}
+
+\definecolor{titleblue}{RGB}{50,55,185}
+\definecolor{footerleft}{RGB}{70,65,190}
+\definecolor{footercenter}{RGB}{135,125,220}
+\definecolor{footerright}{RGB}{185,180,235}
+
+\setbeamercolor{normal text}{fg=black,bg=white}
+\setbeamercolor{frametitle}{fg=titleblue,bg=white}
+\setbeamerfont{frametitle}{size=\Large,series=\normalfont}
+\setbeamertemplate{navigation symbols}{}
+
+\setbeamertemplate{itemize item}{\color{titleblue}\small$\bullet$}
+\setbeamertemplate{itemize subitem}{\color{titleblue}\scriptsize$\bullet$}
+
+\setbeamertemplate{footline}{
+    \leavevmode
+    \hbox{
+        \begin{beamercolorbox}[wd=.33\paperwidth,ht=2.8ex,dp=1.2ex,center]{author in head/foot}
+            \color{white}\scriptsize Monte Carlo Simulation
+        \end{beamercolorbox}
+        \begin{beamercolorbox}[wd=.34\paperwidth,ht=2.8ex,dp=1.2ex,center]{title in head/foot}
+            \color{white}\scriptsize Pricing de produits dérivés
+        \end{beamercolorbox}
+        \begin{beamercolorbox}[wd=.33\paperwidth,ht=2.8ex,dp=1.2ex,center]{date in head/foot}
+            \color{white}\scriptsize \insertframenumber{} / \inserttotalframenumber
+        \end{beamercolorbox}
+    }
+}
+
+\setbeamercolor{author in head/foot}{bg=footerleft,fg=white}
+\setbeamercolor{title in head/foot}{bg=footercenter,fg=white}
+\setbeamercolor{date in head/foot}{bg=footerright,fg=white}
+
+\begin{document}
+
+%------------------------------------------------
+\begin{frame}
+    \centering
+    \vfill
+
+    {\color{titleblue}\Huge
+        \textbf{Modélisation Monte Carlo en C++}
+    }
+
+    \vfill
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+    \frametitle{Sommaire}
+
+    \begin{itemize}
+        \item Cadre mathématique de la méthode Monte Carlo
+
+        \vspace{0.3cm}
+
+        \item Simulation du sous-jacent sous différents modèles
+
+        \vspace{0.3cm}
+
+        \item Pricing d'un call européen pour chaque modèle
+
+        \vspace{0.3cm}
+
+        \item Pricing de produits exotiques
+
+        \vspace{0.3cm}
+
+        \item Méthodes de réduction de variance
+
+        \vspace{0.3cm}
+
+        \item Parallélisation avec OpenMP
+    \end{itemize}
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+    \frametitle{Cadre de valorisation}
+
+    On se place dans un marché financier vérifiant :
+
+    \vspace{0.4cm}
+
+    \begin{itemize}
+        \item \textbf{Absence d'arbitrage} :
+        il n'existe pas de stratégie autofinancée permettant un gain certain sans risque.
+
+        \vspace{0.25cm}
+
+        \item \textbf{Marché complet} :
+        tout payoff atteignable peut être répliqué par une stratégie de portefeuille.
+
+        \vspace{0.25cm}
+
+        \item \textbf{Conséquence} :
+        il existe une unique mesure risque-neutre $\mathbb{Q}$.
+    \end{itemize}
+
+    \vspace{0.4cm}
+
+    Le prix d'un produit dérivé est donné par l'espérance actualisée
+    de son payoff sous $\mathbb{Q}$.
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+    \frametitle{Valorisation risque-neutre}
+
+    Soit $(V_t)_{t\geq 0}$ le prix d'un produit dérivé
+    écrit sur un sous-jacent $(S_t)_{t\geq 0}$.
+
+    \vspace{0.3cm}
+
+    Son payoff peut dépendre de toute la trajectoire du sous-jacent :
+
+    \[
+        \Phi\left((S_u)_{t\leq u\leq T}\right).
+    \]
+
+    Sous l'unique mesure risque-neutre $\mathbb{Q}$ :
+
+    \[
+        \boxed{
+        V_t
+        =
+        \mathbb{E}^{\mathbb{Q}}
+        \left[
+            \frac{B_t}{B_T}
+            \Phi\left((S_u)_{t\leq u\leq T}\right)
+            \,\middle|\,
+            \mathcal{F}_t
+        \right].
+        }
+    \]
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+    \frametitle{Actualisation du payoff}
+
+    L'actif sans risque $(B_t)_{t\geq 0}$ est défini par :
+
+    \[
+        \boxed{
+        B_t
+        =
+        \exp\left(
+            \int_0^t r_s\,ds
+        \right).
+        }
+    \]
+
+    Si le taux d'intérêt $r$ est constant :
+
+    \[
+        B_t=e^{rt}
+        \qquad\text{et}\qquad
+        \frac{B_t}{B_T}=e^{-r(T-t)}.
+    \]
+
+    La formule devient :
+
+    \[
+        \boxed{
+        V_t
+        =
+        e^{-r(T-t)}
+        \mathbb{E}^{\mathbb{Q}}
+        \left[
+            \Phi\left((S_u)_{t\leq u\leq T}\right)
+            \,\middle|\,
+            \mathcal{F}_t
+        \right].
+        }
+    \]
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+    \frametitle{Modélisation Monte Carlo}
+
+    On estime le prix $V_t$ en réalisant $N$ simulations indépendantes
+    de la trajectoire du sous-jacent :
+
+    \[
+        (S_u^{(1)})_{t\leq u\leq T},
+        \ldots,
+        (S_u^{(N)})_{t\leq u\leq T}.
+    \]
+
+    \vspace{0.4cm}
+
+    L'estimateur Monte Carlo du prix est :
+
+    \[
+        \boxed{
+        \widehat{V}_N
+        =
+        e^{-r(T-t)}
+        \frac{1}{N}
+        \sum_{i=1}^{N}
+        \Phi\left((S_u^{(i)})_{t\leq u\leq T}\right).
+        }
+    \]
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+    \frametitle{Erreur standard de l'estimateur}
+
+    On note les payoffs simulés :
+
+    \[
+        Y_i
+        =
+        \Phi\left((S_u^{(i)})_{t\leq u\leq T}\right).
+    \]
+
+    La moyenne empirique est :
+
+    \[
+        \overline{Y}_N
+        =
+        \frac{1}{N}
+        \sum_{i=1}^{N}
+        Y_i.
+    \]
+
+    La variance empirique est estimée par :
+
+    \[
+        \widehat{\sigma}^{\,2}
+        =
+        \frac{1}{N-1}
+        \sum_{i=1}^{N}
+        \left(Y_i-\overline{Y}_N\right)^2.
+    \]
+
+    \[
+        \boxed{
+        \widehat{\mathrm{SE}}
+        =
+        e^{-r(T-t)}
+        \frac{\widehat{\sigma}}{\sqrt{N}}.
+        }
+    \]
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+    \frametitle{Modèle de Black--Scholes et simulation}
+
+    Sous la mesure risque-neutre $\mathbb{Q}$, le sous-jacent vérifie :
+
+    \[
+        \boxed{
+        dS_t
+        =
+        rS_t\,dt
+        +
+        \sigma S_t\,dW_t^{\mathbb{Q}}.
+        }
+    \]
+
+    Entre les dates $t$ et $T$ :
+
+    \[
+        S_T
+        =
+        S_t
+        \exp\left[
+            \left(r-\frac{\sigma^2}{2}\right)(T-t)
+            +
+            \sigma\sqrt{T-t}\,Z
+        \right],
+        \qquad
+        Z\sim\mathcal{N}(0,1).
+    \]
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+    \frametitle{Call européen}
+
+    Pour un call européen, le payoff dépend seulement de $S_T$ :
+
+    \[
+        \boxed{
+        \Phi(S_T)
+        =
+        (S_T-K)^+
+        =
+        \max(S_T-K,0).
+        }
+    \]
+
+    Son prix à l'instant $t$ est :
+
+    \[
+        \boxed{
+        V_t
+        =
+        e^{-r(T-t)}
+        \mathbb{E}^{\mathbb{Q}}
+        \left[
+            (S_T-K)^+
+            \,\middle|\,
+            \mathcal{F}_t
+        \right].
+        }
+    \]
+
+\end{frame}
+
+%------------------------------------------------
+%------------------------------------------------
+\begin{frame}
+    \frametitle{Algorithme de Welford : mise à jour}
+
+    L'algorithme de Welford calcule la moyenne et la variance
+    empiriques en une seule passe, sans stocker tous les payoffs.
+
+    \vspace{0.3cm}
+
+    Initialisation :
+
+    \[
+        n=0,
+        \qquad
+        \overline{Y}_0=0,
+        \qquad
+        M_{2,0}=0.
+    \]
+
+    Pour chaque nouveau payoff $Y_n$, avec $n\geq 1$ :
+
+    \[
+        \delta_n
+        =
+        Y_n-\overline{Y}_{n-1},
+    \]
+
+    \[
+        \overline{Y}_n
+        =
+        \overline{Y}_{n-1}
+        +
+        \frac{\delta_n}{n},
+    \]
+
+    \[
+        M_{2,n}
+        =
+        M_{2,n-1}
+        +
+        \delta_n
+        \left(
+            Y_n-\overline{Y}_n
+        \right).
+    \]
+
+\end{frame}
+
+%------------------------------------------------
+%------------------------------------------------
+\begin{frame}
+    \frametitle{Algorithme de Welford : variance et erreur standard}
+
+    Après avoir traité les $N$ payoffs simulés, l'algorithme fournit :
+
+    \[
+        \overline{Y}_N
+        =
+        \frac{1}{N}
+        \sum_{i=1}^{N}Y_i,
+        \qquad
+        \widehat{\sigma}_N^2
+        =
+        \frac{M_{2,N}}{N-1}.
+    \]
+
+    \vspace{0.3cm}
+
+    L'estimateur Monte Carlo du prix est alors :
+
+    \[
+        \boxed{
+        \widehat{V}_N
+        =
+        e^{-r(T-t)}\overline{Y}_N.
+        }
+    \]
+
+    \vspace{0.3cm}
+
+    Son erreur standard est :
+
+    \[
+        \boxed{
+        \widehat{\mathrm{SE}}
+        =
+        e^{-r(T-t)}
+        \frac{\widehat{\sigma}_N}{\sqrt{N}}
+        }
+    \]
+
+
+\end{frame}
+
+
+%------------------------------------------------
+%------------------------------------------------
+\begin{frame}
+    \frametitle{Intervalle de confiance à 95\,\%}
+
+    Pour un nombre de simulations $N$ suffisamment grand,
+    le théorème central limite donne approximativement :
+
+    \[
+        \frac{\widehat{V}_N-V_t}
+        {\widehat{\mathrm{SE}}}
+        \sim \mathcal{N}(0,1).
+    \]
+
+    \vspace{0.35cm}
+
+    Comme une variable normale centrée réduite appartient à
+    $[-1.96,1.96]$ avec une probabilité proche de $95\,\%$ :
+
+    \[
+        \boxed{
+        \mathrm{IC}_{95\%}
+        =
+        \left[
+            \widehat{V}_N-1.96\,\widehat{\mathrm{SE}},
+            \;
+            \widehat{V}_N+1.96\,\widehat{\mathrm{SE}}
+        \right].
+        }
+    \]
+
+
+\end{frame}
+
+
+%------------------------------------------------
+\begin{frame}
+    \frametitle{Réduction de Variance : variables antithétiques}
+
+    L'idée générale est de construire deux variables aléatoires
+    ayant la même loi, mais négativement corrélées.
+
+    \vspace{0.3cm}
+
+    On note les deux payoffs :
+
+    \[
+        X^+
+        \qquad\text{et}\qquad
+        X^-.
+    \]
+
+    Ils vérifient :
+
+    \[
+        \mathbb{E}[X^+]
+        =
+        \mathbb{E}[X^-],
+        \qquad
+        \mathrm{Cov}(X^+,X^-)<0.
+    \]
+
+    \vspace{0.3cm}
+
+    Au lieu d'utiliser un seul payoff, on utilise leur moyenne :
+
+    \[
+        \boxed{
+        X^{anti}
+        =
+        \frac{X^+ + X^-}{2}.
+        }
+    \]
+
+    \vspace{0.25cm}
+
+\end{frame}
+
+
+
+
+
+
+%------------------------------------------------
+\begin{frame}
+    \frametitle{Réduction de variance : variables antithétiques}
+
+
+    Dans le modèle de Black--Scholes :
+
+    \[
+        S_T^{+}
+        =
+        S_t
+        \exp\left[
+            \left(r-\frac{\sigma^2}{2}\right)(T-t)
+            +
+            \sigma\sqrt{T-t}\,Z
+        \right],
+    \]
+
+    \[
+        S_T^{-}
+        =
+        S_t
+        \exp\left[
+            \left(r-\frac{\sigma^2}{2}\right)(T-t)
+            -
+            \sigma\sqrt{T-t}\,Z
+        \right].
+    \]
+
+    \vspace{0.25cm}
+
+    L'estimateur utilise ensuite la moyenne des deux payoffs :
+
+    \[
+        \boxed{
+        \widehat{V}_N^{\,anti}
+        =
+        e^{-r(T-t)}
+        \frac{1}{N}
+        \sum_{i=1}^{N}
+        \frac{
+            \Phi(S_{T,i}^{+})
+            +
+            \Phi(S_{T,i}^{-})
+        }{2}.
+        }
+    \]
+
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+    \frametitle{Réduction de variance : variable de contrôle}
+
+    L'idée est d'utiliser une variable aléatoire $X$ dont l'espérance
+    est connue, et qui est fortement corrélée avec le payoff $Y$.
+
+    \vspace{0.3cm}
+
+    On suppose connaître :
+
+    \[
+        \mu_X = \mathbb{E}[X].
+    \]
+
+    \vspace{0.3cm}
+
+    On construit alors une nouvelle variable :
+
+    \[
+        \boxed{
+        Y^{ctrl}
+        =
+        Y
+        -
+        \beta
+        \left(
+            X-\mu_X
+        \right).
+        }
+    \]
+
+    \vspace{0.3cm}
+
+    Comme $\mathbb{E}[X-\mu_X]=0$, l'espérance ne change pas :
+
+    \[
+        \mathbb{E}[Y^{ctrl}]
+        =
+        \mathbb{E}[Y].
+    \]
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+    \frametitle{Pourquoi la variance peut diminuer ?}
+
+    La variance de la variable corrigée est :
+
+    \[
+        \mathrm{Var}(Y^{ctrl})
+        =
+        \mathrm{Var}(Y)
+        +
+        \beta^2\mathrm{Var}(X)
+        -
+        2\beta\,\mathrm{Cov}(Y,X).
+    \]
+
+    \vspace{0.35cm}
+
+    Si $X$ est fortement corrélée avec $Y$, alors une partie des
+    fluctuations de $Y$ peut être expliquée par les fluctuations de $X$.
+
+    \vspace{0.35cm}
+
+    Le coefficient optimal est :
+
+    \[
+        \boxed{
+        \beta^\star
+        =
+        \frac{\mathrm{Cov}(Y,X)}
+        {\mathrm{Var}(X)}.
+        }
+    \]
+
+    \vspace{0.25cm}
+
+    \centering
+    \small
+    Plus la corrélation entre $X$ et $Y$ est forte,
+    plus la réduction de variance peut être importante.
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+    \frametitle{Estimateur avec variable de contrôle}
+
+    À partir de $N$ simulations, on calcule :
+
+    \[
+        Y_i^{ctrl}
+        =
+        Y_i
+        -
+        \beta
+        \left(
+            X_i-\mu_X
+        \right).
+    \]
+
+    \vspace{0.3cm}
+
+    L'estimateur Monte Carlo devient :
+
+    \[
+        \boxed{
+        \widehat{V}_N^{ctrl}
+        =
+        \frac{1}{N}
+        \sum_{i=1}^{N}
+        Y_i^{ctrl}.
+        }
+    \]
+
+    \vspace{0.3cm}
+
+    En pratique, $\beta$ peut être estimé à partir des simulations :
+
+    \[
+        \widehat{\beta}
+        =
+        \frac{
+            \widehat{\mathrm{Cov}}(Y,X)
+        }{
+            \widehat{\mathrm{Var}}(X)
+        }.
+    \]
+
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+    \frametitle{Application au call de Black--Scholes}
+
+    Pour un call européen, le payoff actualisé :
+
+    \[
+        Y_i
+=
+e^{-r(T-t)}
+\left(S_T^{(i)}-K\right)^+
+    \]
+
+    \vspace{0.25cm}
+
+    Une variable de contrôle naturelle est le sous-jacent actualisé :
+
+    \[
+        X_i
+=
+e^{-r(T-t)}S_T^{(i)}.
+    \]
+
+    \vspace{0.25cm}
+
+    Sous la mesure risque-neutre, sans dividendes :
+
+    \[
+        \boxed{
+        \mathbb{E}^{\mathbb{Q}}[X_i\mid\mathcal{F}_t]
+        =
+        S_t.
+        }
+    \]
+
+    \vspace{0.25cm}
+
+    On utilise donc :
+
+    \[
+        \boxed{
+        Y_i^{ctrl}
+        =
+        Y_i
+        -
+        \beta
+        \left(
+            X_i-S_t
+        \right).
+        }
+    \]
+
+\end{frame}
+
+
+
+
+
+%------------------------------------------------
+\begin{frame}
+    \frametitle{Pourquoi paralléliser Monte Carlo ?}
+
+    Les simulations sont indépendantes :
+
+    \[
+        Z_i \longrightarrow S_{T,i} \longrightarrow (Y_i,X_i),
+        \qquad i=1,\ldots,N.
+    \]
+
+    \vspace{0.4cm}
+
+    Elles peuvent donc être réparties entre plusieurs cœurs du processeur.
+
+    \vspace{0.4cm}
+
+    \[
+        \boxed{
+        \text{Calculs locaux en parallèle}
+        \quad\longrightarrow\quad
+        \text{Fusion statistique}
+        }
+    \]
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+    \frametitle{Répartition du travail avec OpenMP}
+
+    OpenMP crée une équipe de threads et partage les simulations entre eux.
+
+    \vspace{0.4cm}
+
+    \[
+    \begin{array}{c|c}
+        \text{Thread} & \text{Simulations traitées} \\
+        \hline
+        0 & 1,\ldots,N_0 \\
+        1 & N_0+1,\ldots,N_1 \\
+        \vdots & \vdots \\
+        p-1 & N_{p-2}+1,\ldots,N
+    \end{array}
+    \]
+
+    \vspace{0.4cm}
+
+    Chaque simulation est exécutée une seule fois.
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+    \frametitle{Des données locales à chaque thread}
+
+    Chaque thread possède :
+
+    \begin{itemize}
+        \item son propre générateur pseudo-aléatoire ;
+        \item sa moyenne locale ;
+        \item ses quantités locales de variance et de covariance.
+    \end{itemize}
+
+    \vspace{0.4cm}
+
+    \[
+        \mathcal{S}_k
+        =
+        \left(n_k,\overline{Y}_k,\overline{X}_k,
+        M_{2,Y,k},M_{2,X,k},C_{YX,k}\right).
+    \]
+
+    Les threads travaillent ainsi sans modifier simultanément les mêmes données.
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+    \frametitle{Fusion des statistiques de Welford}
+
+    Pour fusionner deux groupes $A$ et $B$, on pose :
+
+    \[
+        n=n_A+n_B,
+        \qquad
+        \delta_Y=\overline{Y}_B-\overline{Y}_A.
+    \]
+
+    La moyenne et la dispersion globales sont :
+
+    \[
+        \boxed{\overline{Y}
+        =\overline{Y}_A+\delta_Y\frac{n_B}{n}}
+    \]
+
+    \[
+        \boxed{M_{2,Y}
+        =M_{2,Y,A}+M_{2,Y,B}
+        +\delta_Y^2\frac{n_A n_B}{n}}
+    \]
+
+    Le dernier terme mesure l'écart entre les moyennes des deux groupes.
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+    \frametitle{Origine de la formule de fusion}
+
+    Pour $i\in A$, on décompose :
+
+    \[
+        Y_i-\overline{Y}
+        =(Y_i-\overline{Y}_A)+(\overline{Y}_A-\overline{Y}).
+    \]
+
+    Comme
+
+    \[
+        \sum_{i\in A}(Y_i-\overline{Y}_A)=0,
+    \]
+
+    les termes croisés disparaissent. Ainsi :
+
+    \[
+        M_{2,Y}=M_{2,Y,A}+M_{2,Y,B}
+        +n_A(\overline{Y}_A-\overline{Y})^2
+        +n_B(\overline{Y}_B-\overline{Y})^2.
+    \]
+
+    En remplaçant les deux écarts à la moyenne globale, on retrouve :
+
+    \[
+        \boxed{M_{2,Y}=M_{2,Y,A}+M_{2,Y,B}
+        +\delta_Y^2\frac{n_A n_B}{n}}.
+    \]
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+    \frametitle{Fusion de la covariance}
+
+    En posant $\delta_X=\overline{X}_B-\overline{X}_A$ :
+
+    \[
+        \boxed{
+        C_{YX}
+        =C_{YX,A}+C_{YX,B}
+        +\delta_Y\delta_X\frac{n_A n_B}{n}
+        }
+    \]
+
+    Après la fusion de tous les threads :
+
+    \[
+        \widehat{\mathrm{Var}}(Y)=\frac{M_{2,Y}}{n-1},
+        \qquad
+        \widehat{\mathrm{Cov}}(Y,X)=\frac{C_{YX}}{n-1}.
+    \]
+
+    Les statistiques globales sont obtenues sans stocker les simulations.
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+    \frametitle{Synchronisation des threads}
+
+    \begin{block}{\texttt{nowait}}
+        Un thread ayant terminé ses simulations peut poursuivre sans attendre
+        la fin des autres threads.
+    \end{block}
+
+    \begin{block}{\texttt{critical}}
+        La fusion avec l'état global est exécutée par un seul thread à la fois.
+        Les autres threads attendent brièvement.
+    \end{block}
+
+    \[
+        \underbrace{\text{nombreuses simulations parallèles}}_{N}
+        \quad\longrightarrow\quad
+        \underbrace{\text{quelques fusions}}_{p}.
+    \]
+\end{frame}
+
+%------------------------------------------------
+\begin{frame}
+    \frametitle{Bilan de la parallélisation}
+
+    \begin{itemize}
+        \item Les simulations sont réparties entre les threads.
+        \item Chaque thread utilise un générateur et un état Welford privés.
+        \item Les états locaux sont fusionnés mathématiquement.
+        \item Une courte section critique protège la fusion globale.
+    \end{itemize}
+
+    \vspace{0.4cm}
+
+    L'accélération apportée par $p$ threads se mesure par :
+
+    \[
+        \boxed{\mathrm{Speedup}(p)=\frac{T_1}{T_p}}
+    \]
+
+    Elle reste généralement inférieure à $p$ en raison des synchronisations
+    et des limites matérielles.
+\end{frame}
+
+\end{document}
