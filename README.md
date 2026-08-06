@@ -4,6 +4,10 @@
   <img src="assets/cover.png" alt="Monte Carlo en C++ — pricing d'options" width="100%">
 </p>
 
+<p align="center">
+  <a href="https://www.youtube.com/playlist?list=PLYDUo5ty5PuI"><strong>▶ Voir la série complète sur YouTube</strong></a>
+</p>
+
 Ce dépôt accompagne une série de vidéos consacrée aux méthodes de Monte Carlo
 appliquées à la finance quantitative.
 
