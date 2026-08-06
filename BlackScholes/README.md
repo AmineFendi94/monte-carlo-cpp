@@ -35,7 +35,7 @@ la machine utilisée.
 
 ## Vidéo
 
-Le lien vers la vidéo YouTube sera ajouté ici lors de sa publication.
+[Voir la série de vidéos sur YouTube](https://www.youtube.com/playlist?list=PLYDUo5ty5PuI)
 
 ## Compilation
 
@@ -60,18 +60,3 @@ Le fichier LaTeX utilisé pour la série est disponible dans
 [`slides/MonteCarloPresentation.tex`](slides/MonteCarloPresentation.tex).
 Il présente le cadre mathématique, les méthodes de réduction de variance et
 la parallélisation OpenMP sans inclure de code dans les diapositives.
-
-## Mesurer l'accélération OpenMP
-
-Pour chaque nombre de threads $p$, mesurer le temps $T_p$, puis calculer :
-
-$$
-\operatorname{Speedup}(p)=\frac{T_1}{T_p}.
-$$
-
-| Threads | Temps $T_p$ | Speedup |
-|---:|---:|---:|
-| 1 | à mesurer | 1,00 |
-| 2 | à mesurer | à calculer |
-| 4 | à mesurer | à calculer |
-| 8 | à mesurer | à calculer |
