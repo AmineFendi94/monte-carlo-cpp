@@ -35,12 +35,8 @@ Les exemples utilisent les paramètres suivants :
 | Volatilité $\sigma$ | 0,156582142 |
 | Maturité $T$ | 1 an |
 
-Par défaut, chaque programme utilise un million de simulations. Ce nombre peut
-être donné en premier argument de l'exécutable afin de tester rapidement le
-code ou de lancer une estimation plus précise.
-
-Dans les épisodes 3 et 5, une simulation désigne une paire antithétique : le
-programme calcule donc deux valeurs terminales, associées à $Z$ et $-Z$.
+Le nombre de simulations est défini dans chaque source et peut être adapté à
+la machine utilisée.
 
 ## Vidéo
 
@@ -57,21 +53,11 @@ cmake --build build
 
 Les exécutables sont placés dans `build/BlackScholes/`.
 
-Exemple avec 100 000 simulations :
-
-```bash
-./build/BlackScholes/01_monte_carlo 100000
-```
-
 Pour choisir le nombre de threads de la version OpenMP :
 
 ```bash
-OMP_NUM_THREADS=4 ./build/BlackScholes/05_antithetiques_controle_openmp 1000000
+OMP_NUM_THREADS=4 ./build/BlackScholes/05_antithetiques_controle_openmp
 ```
-
-Les générateurs utilisent une graine fixe pour rendre les résultats
-reproductibles. Pour l'épisode 5, le résultat est reproductible lorsque le
-nombre de threads reste identique.
 
 ## Support de présentation
 
