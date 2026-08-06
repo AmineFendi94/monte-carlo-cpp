@@ -1,6 +1,8 @@
+#include <algorithm>
 #include <iostream>
 #include <cmath>
 #include <random>
+#include <stdexcept>
 
 
 struct Result
@@ -27,14 +29,19 @@ Result callBlackScholes(double S0, double K , double r , double T , double sigma
 
     double M2 = 0.0;
 
-    for (std::size_t i = 1; i < Nsim+1; i++)
+    // Ces constantes sont communes aux deux trajectoires antithétiques.
+    double drift = (r-0.5*sigma*sigma)*T;
+    double diffusion = sigma*std::sqrt(T);
+    double discount = std::exp(-r*T);
+
+    for (std::size_t i = 1; i <= Nsim; i++)
     {
         double z = normal(generator);
         
-        double ST1 = S0*std::exp((r-0.5*sigma*sigma)*T + sigma*std::sqrt(T)*z);
-        double ST2 = S0*std::exp((r-0.5*sigma*sigma)*T - sigma*std::sqrt(T)*z);
+        double ST1 = S0*std::exp(drift + diffusion*z);
+        double ST2 = S0*std::exp(drift - diffusion*z);
 
-        double discountPayoff = std::exp(-r*T)*0.5*(std::max(ST1-K,0.0)+std::max(ST2-K,0.0));
+        double discountPayoff = discount*0.5*(std::max(ST1-K,0.0)+std::max(ST2-K,0.0));
 
         double delta = discountPayoff - resultat.price;
 
@@ -84,6 +91,5 @@ int main()
 
 
 }
-
 
 

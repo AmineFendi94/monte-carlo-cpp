@@ -1,6 +1,9 @@
+#include <algorithm>
 #include <iostream>
 #include <cmath>
+#include <omp.h>
 #include <random>
+#include <stdexcept>
 
 
 struct Result
@@ -45,6 +48,17 @@ void updateStatistics(Statistics& s, double X , double Y)
 
 Statistics mergeStatistics(Statistics const& a , Statistics const& b)
 {
+    // Un thread peut ne recevoir aucune itération si Nsim est plus petit que
+    // le nombre de threads. Dans ce cas, il n'y a aucune statistique à fusionner.
+    if (a.n == 0)
+    {
+        return b;
+    }
+    if (b.n == 0)
+    {
+        return a;
+    }
+
     Statistics s;
 
     s.n = a.n + b.n;
@@ -81,6 +95,10 @@ Result callBlackScholes(double S0, double K , double r , double T , double sigma
 
     Statistics globalStatistics;
 
+    // Ces constantes sont partagées en lecture seule par tous les threads.
+    double drift = (r-0.5*sigma*sigma)*T;
+    double diffusion = sigma*std::sqrt(T);
+    double discount = std::exp(-r*T);
 
     #pragma omp parallel
     {
@@ -92,17 +110,17 @@ Result callBlackScholes(double S0, double K , double r , double T , double sigma
         Statistics localStatistics;
 
         #pragma omp for
-        for (std::size_t i = 1; i < Nsim+1; i++)
+        for (std::size_t i = 1; i <= Nsim; i++)
         {
             double z = normal(generator);
             
             
-            double ST1 = S0*std::exp((r-0.5*sigma*sigma)*T + sigma*std::sqrt(T)*z);
-            double ST2 = S0*std::exp((r-0.5*sigma*sigma)*T - sigma*std::sqrt(T)*z);
+            double ST1 = S0*std::exp(drift + diffusion*z);
+            double ST2 = S0*std::exp(drift - diffusion*z);
 
-            double discountST = std::exp(-r*T)*0.5*(ST1+ST2);
+            double discountST = discount*0.5*(ST1+ST2);
 
-            double discountPayoff = std::exp(-r*T)*0.5*(std::max(ST1-K,0.0)+std::max(ST2-K,0.0));
+            double discountPayoff = discount*0.5*(std::max(ST1-K,0.0)+std::max(ST2-K,0.0));
 
             updateStatistics(localStatistics,discountST,discountPayoff);
         }
@@ -117,17 +135,28 @@ Result callBlackScholes(double S0, double K , double r , double T , double sigma
     double meanDiscountST = globalStatistics.meanX;
     double meanDiscountPayoff = globalStatistics.meanY;
 
-    double varDiscountPayoff =  globalStatistics.M2Y/static_cast<double>(Nsim-1);
-    double varDiscountST = globalStatistics.M2X/static_cast<double>(Nsim-1);
-    double covDiscountPayoffDiscountST = globalStatistics.CXY/static_cast<double>(Nsim-1);
+    // On utilise le nombre d'observations effectivement réuni par la fusion.
+    double n = static_cast<double>(globalStatistics.n);
+    double varDiscountPayoff =  globalStatistics.M2Y/(n-1.0);
+    double varDiscountST = globalStatistics.M2X/(n-1.0);
+    double covDiscountPayoffDiscountST = globalStatistics.CXY/(n-1.0);
+
+    // Sans variance pour la variable de contrôle, beta serait une division par zéro.
+    if (varDiscountST <= 0.0)
+    {
+        throw std::runtime_error("La variance de la variable de controle est nulle");
+    }
 
     double beta = covDiscountPayoffDiscountST/varDiscountST;
 
     resultat.price = meanDiscountPayoff -beta*(meanDiscountST - S0);
 
-    double varControlDiscountPayoff = varDiscountPayoff - covDiscountPayoffDiscountST*covDiscountPayoffDiscountST/varDiscountST;
+    // Cette protection absorbe uniquement les petites valeurs négatives dues aux arrondis.
+    double varControlDiscountPayoff = std::max(
+        varDiscountPayoff - covDiscountPayoffDiscountST*covDiscountPayoffDiscountST/varDiscountST,
+        0.0);
 
-    double stdPrice = std::sqrt(varControlDiscountPayoff/static_cast<double>(Nsim));
+    double stdPrice = std::sqrt(varControlDiscountPayoff/n);
 
     resultat.CIHigh = resultat.price + 1.96*stdPrice;
     resultat.CILow = resultat.price - 1.96*stdPrice;
@@ -147,7 +176,7 @@ int main()
         double sigma = 0.156582142;
         double K = 200;
         double T = 1.0;
-        std::size_t Nsim = 1e9;
+        std::size_t Nsim = 1e6;
 
         auto resulat = callBlackScholes(S0, K,r,T,sigma,Nsim);
 
@@ -167,6 +196,5 @@ int main()
 
 
 }
-
 
 

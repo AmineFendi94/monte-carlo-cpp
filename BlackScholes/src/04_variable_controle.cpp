@@ -1,6 +1,8 @@
+#include <algorithm>
 #include <iostream>
 #include <cmath>
 #include <random>
+#include <stdexcept>
 
 
 struct Result
@@ -31,16 +33,20 @@ Result callBlackScholes(double S0, double K , double r , double T , double sigma
     double varDiscountST = 0.0;
     double covDiscountPayoffDiscountST = 0.0;
 
+    // Ces constantes sont les mêmes pour toutes les trajectoires simulées.
+    double drift = (r-0.5*sigma*sigma)*T;
+    double diffusion = sigma*std::sqrt(T);
+    double discount = std::exp(-r*T);
 
-    for (std::size_t i = 1; i < Nsim+1; i++)
+    for (std::size_t i = 1; i <= Nsim; i++)
     {
         double z = normal(generator);
         
-        double ST = S0*std::exp((r-0.5*sigma*sigma)*T + sigma*std::sqrt(T)*z);
+        double ST = S0*std::exp(drift + diffusion*z);
 
-        double discountST = std::exp(-r*T)*ST;
+        double discountST = discount*ST;
 
-        double discountPayoff = std::exp(-r*T)*std::max(ST-K,0.0);
+        double discountPayoff = discount*std::max(ST-K,0.0);
 
         double delta = discountPayoff - resultat.price;
         double delta1 = discountST - meanDiscountST;
@@ -58,11 +64,20 @@ Result callBlackScholes(double S0, double K , double r , double T , double sigma
     varDiscountST /= static_cast<double>(Nsim-1);
     covDiscountPayoffDiscountST /= static_cast<double>(Nsim-1);
 
+    // Sans variance pour la variable de contrôle, beta serait une division par zéro.
+    if (varDiscountST <= 0.0)
+    {
+        throw std::runtime_error("La variance de la variable de controle est nulle");
+    }
+
     double beta = covDiscountPayoffDiscountST/varDiscountST;
 
     resultat.price += -beta*(meanDiscountST - S0);
 
-    double varControlDiscountPayoff = varDiscountPayoff - covDiscountPayoffDiscountST*covDiscountPayoffDiscountST/varDiscountST;
+    // Les arrondis numériques peuvent produire une très petite variance négative.
+    double varControlDiscountPayoff = std::max(
+        varDiscountPayoff - covDiscountPayoffDiscountST*covDiscountPayoffDiscountST/varDiscountST,
+        0.0);
 
     double stdPrice = std::sqrt(varControlDiscountPayoff/static_cast<double>(Nsim));
 
@@ -104,6 +119,5 @@ int main()
 
 
 }
-
 
 

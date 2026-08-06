@@ -1,6 +1,8 @@
+#include <algorithm>
 #include <iostream>
 #include <cmath>
 #include <random>
+#include <stdexcept>
 
 
 struct Result
@@ -25,14 +27,19 @@ Result callBlackScholes(double S0, double K , double r , double T , double sigma
     std::mt19937 generator(rd());
     std::normal_distribution<double> normal(0.0,1.0);
 
+    // Ces quantités sont identiques pour toutes les simulations : les calculer
+    // une seule fois évite des opérations coûteuses dans la boucle Monte Carlo.
+    double drift = (r-0.5*sigma*sigma)*T;
+    double diffusion = sigma*std::sqrt(T);
+    double discount = std::exp(-r*T);
 
-    for (std::size_t i = 1; i < Nsim+1; i++)
+    for (std::size_t i = 1; i <= Nsim; i++)
     {
         double z = normal(generator);
         
-        double ST = S0*std::exp((r-0.5*sigma*sigma)*T + sigma*std::sqrt(T)*z);
+        double ST = S0*std::exp(drift + diffusion*z);
 
-        double discountPayoff = std::exp(-r*T)*std::max(ST-K,0.0);
+        double discountPayoff = discount*std::max(ST-K,0.0);
 
         resultat.price += discountPayoff;
     }
@@ -70,6 +77,5 @@ int main()
 
 
 }
-
 
 
