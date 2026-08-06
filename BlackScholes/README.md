@@ -5,15 +5,20 @@ Monte Carlo en C++.
 
 ## Progression
 
-Les noms originaux des sources sont conservés. L'ordre conseillé pour suivre
-la série est :
+Les noms originaux des sources sont conservés. Les cinq épisodes suivent la
+progression suivante :
 
-| Étape | Fichier | Notion principale |
+| Épisode | Fichier associé | Contenu |
 |---:|---|---|
-| 1 | `BlackScholes.cpp` | Simulation du call et statistiques en ligne |
-| 2 | `BlackScholesAntithetic.cpp` | Variables antithétiques |
-| 3 | `BlackScholesVC.cpp` | Variable de contrôle |
-| 4 | `BlackScholesOpenMP.cpp` | Parallélisation OpenMP et fusion de Welford |
+| 1 | `BlackScholes.cpp` | Présentation de la méthode Monte Carlo et application au pricing d'un call sous Black--Scholes |
+| 2 | `BlackScholes.cpp` | Calcul de l'écart-type de l'estimateur avec l'algorithme de Welford et construction de l'intervalle de confiance |
+| 3 | `BlackScholesAntithetic.cpp` | Réduction de variance par variables antithétiques |
+| 4 | `BlackScholesVC.cpp` | Réduction de variance par variable de contrôle |
+| 5 | `BlackScholesOpenMP.cpp` | Combinaison des deux méthodes de réduction de variance et parallélisation avec OpenMP |
+
+Les épisodes 1 et 2 correspondent à deux étapes successives de
+`BlackScholes.cpp` : le second enrichit l'implémentation introduite dans le
+premier avec les statistiques nécessaires à l'intervalle de confiance.
 
 Le call européen sert d'exemple pédagogique : son prix analytique permet de
 contrôler facilement le résultat de la simulation.
