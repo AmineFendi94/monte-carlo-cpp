@@ -17,12 +17,7 @@ progression suivante :
 | 5 | [`05_antithetiques_controle_openmp.cpp`](src/05_antithetiques_controle_openmp.cpp) | Combinaison des deux méthodes de réduction de variance et parallélisation avec OpenMP |
 | 6 | [`06_barriere.cpp`](src/06_barriere.cpp) | Pricing Monte Carlo d'un call down-and-out avec variables antithétiques, variable de contrôle et OpenMP |
 
-Les épisodes 1 et 2 disposent désormais de fichiers distincts : le second
-enrichit l'implémentation introduite dans le premier avec les statistiques
-nécessaires à l'intervalle de confiance.
 
-Le call européen sert d'exemple pédagogique : son prix analytique permet de
-contrôler facilement le résultat de la simulation.
 
 ## Paramètres de référence
 
