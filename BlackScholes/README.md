@@ -1,11 +1,11 @@
-# Épisode 1 à 5 — Monte Carlo sous Black–Scholes
+# Épisodes 1 à 6 — Monte Carlo sous Black–Scholes
 
 Ce dossier accompagne la première partie de la série consacrée au pricing
 Monte Carlo en C++.
 
 ## Progression
 
-Les noms originaux des sources sont conservés. Les cinq épisodes suivent la
+Les noms originaux des sources sont conservés. Les six épisodes suivent la
 progression suivante :
 
 | Épisode | Fichier associé | Contenu |
@@ -15,6 +15,7 @@ progression suivante :
 | 3 | [`03_variables_antithetiques.cpp`](src/03_variables_antithetiques.cpp) | Réduction de variance par variables antithétiques |
 | 4 | [`04_variable_controle.cpp`](src/04_variable_controle.cpp) | Réduction de variance par variable de contrôle |
 | 5 | [`05_antithetiques_controle_openmp.cpp`](src/05_antithetiques_controle_openmp.cpp) | Combinaison des deux méthodes de réduction de variance et parallélisation avec OpenMP |
+| 6 | [`06_barriere.cpp`](src/06_barriere.cpp) | Pricing Monte Carlo d'un call down-and-out avec variables antithétiques, variable de contrôle et OpenMP |
 
 Les épisodes 1 et 2 disposent désormais de fichiers distincts : le second
 enrichit l'implémentation introduite dans le premier avec les statistiques
@@ -57,6 +58,12 @@ Pour choisir le nombre de threads de la version OpenMP :
 
 ```bash
 OMP_NUM_THREADS=4 ./build/BlackScholes/05_antithetiques_controle_openmp
+```
+
+Le même réglage s'applique à l'épisode 6 :
+
+```bash
+OMP_NUM_THREADS=4 ./build/BlackScholes/06_barriere
 ```
 
 ## Support de présentation

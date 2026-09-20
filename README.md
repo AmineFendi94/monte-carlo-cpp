@@ -19,7 +19,7 @@ numériquement stables et la parallélisation.
 
 | Dossier | Sujet |
 |---|---|
-| [`BlackScholes/`](BlackScholes/) | Pricing d'un call européen, variables antithétiques, variable de contrôle et OpenMP |
+| [`BlackScholes/`](BlackScholes/) | Pricing de calls européens et barrières, réduction de variance et OpenMP |
 
 ## Construire les exemples
 
